@@ -1,0 +1,27 @@
+#!/bin/python
+
+from argparse import ArgumentParser
+from pathlib import Path
+from subprocess import run
+from os import makedirs
+
+epilog='''Packages are just configuration files of a program collected in a git repository,
+this program is just a wrapper around git to help out.
+See "git bare" dotfile management and stow to see what inspired this program'''
+
+argparser = ArgumentParser(description='Package tracker', epilog=epilog)
+argparser.add_argument('package', help='Package to work on')
+argparser.add_argument('git_args', nargs='*', help='Arguments to pass onto git')
+argparser.add_argument('--config_home', default=Path.home(), type=Path, help='Directory to search packages')
+argparser.add_argument('--work_tree', default=Path('/'), type=Path, help='Git working tree, default is /')
+argparser.add_argument('--create', action='store_true', help='Create package')
+
+args = argparser.parse_args()
+
+package_path = f'{args.config_home}/{args.package}'
+if args.create:
+    makedirs(package_path, exist_ok=True)
+    run('git init --bare', cwd=package_path, shell=True)
+    run('git config --local status.showUntrackedFiles no', cwd=package_path, shell=True)
+else:
+    run(['git', f'--work-tree={args.work_tree}', f'--git-dir={package_path}', *args.git_args])
