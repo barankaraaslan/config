@@ -19,19 +19,20 @@ def arg_parse():
     parser.add_argument('--save_stat', action='store_true', help='Save tracked files stats')
     parser.add_argument('--apply_stat', action='store_true', help='Apply saved stats to tracked files')
     parser.add_argument('--stat_home', default=Path('/var/config'), type=Path, help='Home directory for stats')
+    parser.add_argument('--inside', action='store_true', help='Run git command in repository directory')
 
     return parser.parse_known_args()
 
 args, git_args = arg_parse()
 
 package_path = f'{args.config_home}/{args.package}'
-run_in_repo = lambda cmd : run(cmd, cwd=package_path, shell=True)
+run_in_repo = lambda params : run(['git', *params], cwd=package_path)
 git_cmd = lambda params: run(['git', f'--work-tree={args.work_tree}', f'--git-dir={package_path}', *params])
 
 if args.create:
     makedirs(package_path)
-    run_in_repo('git init --bare')
-    run_in_repo('git config --local status.showUntrackedFiles no')
+    run_in_repo(split('init --bare'))
+    run_in_repo(split('config --local status.showUntrackedFiles no'))
 
     # create stat storage
     stat_dir_path = f'{args.stat_home}/{args.package}'
@@ -47,6 +48,7 @@ if args.save_stat:
     print('save')
 if args.save_stat:
     print('apply')
-
+if args.inside:
+    run_in_repo(git_args)
 else:
     git_cmd(git_args)
