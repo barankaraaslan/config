@@ -4,35 +4,49 @@ from argparse import ArgumentParser
 from pathlib import Path
 from subprocess import run
 from os import makedirs
+from shlex import split
 
-epilog='''Packages are just configuration files of a program collected in a git repository,
-this program is just a wrapper around git to help out.
-See "git bare" dotfile management and stow to see what inspired this program'''
+def arg_parse():
+    epilog='''Packages are just configuration files of a program collected in a git repository,
+    this program is just a wrapper around git to help out.
+    See "git bare" dotfile management and stow to see what inspired this program'''
 
-parser = ArgumentParser(description='Package tracker', epilog=epilog)
-parser.add_argument('package', help='Package to work on')
-parser.add_argument('--config_home', default=Path.home(), type=Path, help='Directory to search packages')
-parser.add_argument('--work_tree', default=Path('/'), type=Path, help='Git working tree, default is /')
-parser.add_argument('--create', action='store_true', help='Create package')
+    parser = ArgumentParser(description='Package tracker', epilog=epilog)
+    parser.add_argument('package', help='Package to work on')
+    parser.add_argument('--config_home', default=Path.home(), type=Path, help='Directory to search packages')
+    parser.add_argument('--work_tree', default=Path('/'), type=Path, help='Git working tree, default is /')
+    parser.add_argument('--create', action='store_true', help='Create package')
+    parser.add_argument('--save_stat', action='store_true', help='Save tracked files stats')
+    parser.add_argument('--apply_stat', action='store_true', help='Apply saved stats to tracked files')
+    parser.add_argument('--stat_home', default=Path('/var/config'), type=Path, help='Home directory for stats')
 
-subparsers = parser.add_subparsers()
-stat_parser = subparsers.add_parser('stat', help='file metadata operations')
-stat_parser.add_argument('operation', choices=['save', 'apply'], help='save stats or apply saved stats to tracked files')
+    return parser.parse_known_args()
 
-args, git_args = parser.parse_known_args()
+args, git_args = arg_parse()
 
 package_path = f'{args.config_home}/{args.package}'
+run_in_repo = lambda cmd : run(cmd, cwd=package_path, shell=True)
+git_cmd = lambda params: run(['git', f'--work-tree={args.work_tree}', f'--git-dir={package_path}', *params])
+
 if args.create:
-    makedirs(package_path, exist_ok=True)
-    run('git init --bare', cwd=package_path, shell=True)
-    run('git config --local status.showUntrackedFiles no', cwd=package_path, shell=True)
+    makedirs(package_path)
+    run_in_repo('git init --bare')
+    run_in_repo('git config --local status.showUntrackedFiles no')
+
+    # create stat storage
+    stat_dir_path = f'{args.stat_home}/{args.package}'
+    makedirs(stat_dir_path)
+    stat_file_path = f'{stat_dir_path}/stats.ini'
+    with open(stat_file_path, 'x'):
+        pass
+    git_cmd(split(f'add {stat_file_path}'))
+    git_cmd(split('commit -m "initial commit"'))
     exit(0)
 
-if args.operation:
-    if args.operation == 'save':
-        print('save')
-    if args.operation == 'apply':
-        print('apply')
+if args.save_stat:
+    print('save')
+if args.save_stat:
+    print('apply')
+
 else:
-    print('else')
-    run(['git', f'--work-tree={args.work_tree}', f'--git-dir={package_path}', *git_args])
+    git_cmd(git_args)
