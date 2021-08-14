@@ -1,9 +1,10 @@
 #!/bin/python
 
 from argparse import ArgumentParser
+from configparser import ConfigParser
 from pathlib import Path
 from subprocess import run
-from os import makedirs
+from os import makedirs, stat
 from shlex import split
 
 def arg_parse():
@@ -25,9 +26,14 @@ def arg_parse():
 
 args, git_args = arg_parse()
 
+# TODO: unify run calls, use expressive approach or lambda approach
 package_path = f'{args.config_home}/{args.package}'
 run_in_repo = lambda params : run(['git', *params], cwd=package_path)
 git_cmd = lambda params: run(['git', f'--work-tree={args.work_tree}', f'--git-dir={package_path}', *params])
+
+stat_dir_path = f'{args.stat_home}/{args.package}'
+makedirs(stat_dir_path, exist_ok=True)
+stat_file_path = str(Path(f'{stat_dir_path}/stats.ini').resolve())
 
 if args.create:
     makedirs(package_path)
@@ -35,19 +41,32 @@ if args.create:
     run_in_repo(split('config --local status.showUntrackedFiles no'))
 
     # create stat storage
-    stat_dir_path = f'{args.stat_home}/{args.package}'
-    makedirs(stat_dir_path)
-    stat_file_path = str(Path(f'{stat_dir_path}/stats.ini').resolve())
     with open(stat_file_path, 'x'):
         pass
     git_cmd(split(f'add {stat_file_path}'))
     git_cmd(split('commit -m "initial commit"'))
     exit(0)
 
+branch = run('git rev-parse --abbrev-ref HEAD', cwd=package_path, shell=True, capture_output=True, text=True).stdout.strip()
+tracked_files = run(f'git ls-tree -r {branch} --name-only', cwd=package_path, shell=True, capture_output=True, text=True).stdout.strip().split()
+
 if args.save_stat:
-    print('save')
-if args.save_stat:
+    stats = ConfigParser()
+    for i in tracked_files:
+        stat_result = stat(f'{args.work_tree}/{i}')
+        stats[i] = {}
+        stats[i]['mode'] = str(stat_result.st_mode)
+        stats[i]['uid'] = str(stat_result.st_uid)
+        stats[i]['gid'] = str(stat_result.st_gid)
+
+    with open(stat_file_path, 'w') as stats_file:
+        stats.write(stats_file)
+    exit(0)
+
+if args.apply_stat:
     print('apply')
+    exit(0)
+
 if args.inside:
     run_in_repo(git_args)
 else:
