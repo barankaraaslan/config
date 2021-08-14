@@ -12,6 +12,7 @@ function clean() {
 function run() {
     ../config dummy_package --work_tree=env/ --config_home=env/home/randusername --stat_home=env/var/config --create 
     ../config dummy_package --work_tree=env/ --config_home=env/home/randusername --stat_home=env/var/config --save_stat
+    ../config dummy_package --work_tree=env/ --config_home=env/home/randusername --stat_home=env/var/config --apply_stat
 
-    test -s env/var/config/dummy_package/stats.ini && echo "Test Passed" || echo "Test Failed"
+    test $(stat -c "%a" env/var/config/dummy_package/stats.ini) = "644"  && echo "Test Passed" || echo "Test Failed"
 }

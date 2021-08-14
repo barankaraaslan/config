@@ -1,23 +1,23 @@
 #!/bin/bash
 
 function init_test() {
-    mkdir -p test/var/config
-    mkdir -p test/home/randusername
+    mkdir -p env/var/config
+    mkdir -p env/home/randusername
 }
 
 function clean() {
-    rm -rf test/
+    rm -rf env/
 
-    rm -rf test/home/randusername/dummy_package
-    rm -rf test/var/config/dummy_package
+    rm -rf env/home/randusername/dummy_package
+    rm -rf env/var/config/dummy_package
 
-    rm -rf test/cloned
+    rm -rf env/cloned
 }
 
 function run() {
-    ../config dummy_package --work_tree=test/ --config_home=test/home/randusername --stat_home=test/var/config --create 
-    ../config dummy_package --work_tree=test/ --config_home=test/home/randusername --stat_home=test/var/config --inside clone . `pwd`/test/cloned
+    ../config dummy_package --work_tree=env/ --config_home=env/home/randusername --stat_home=env/var/config --create 
+    ../config dummy_package --work_tree=env/ --config_home=env/home/randusername --stat_home=env/var/config --inside clone . `pwd`/env/cloned
 
-    test -f test/cloned/var/config/dummy_package/stats.ini && echo "Test Passed" || echo "Test Failed"
+    test -f env/cloned/var/config/dummy_package/stats.ini && echo "Test Passed" || echo "Test Failed"
 
 }
