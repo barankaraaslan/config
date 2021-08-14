@@ -10,4 +10,4 @@ rm -rf test/var/config/dummy_package
 rm -rf test/cloned
 ./config dummy_package --work_tree=test/ --config_home=test/home/randusername --stat_home=test/var/config --inside clone . `pwd`/test/cloned
 
-test -f test/cloned/var/config/dummy_package/stats.ini || echo "Test Failed"
+test -f test/cloned/var/config/dummy_package/stats.ini && echo "Test Passed" || echo "Test Failed"
