@@ -4,7 +4,7 @@ from argparse import ArgumentParser
 from configparser import ConfigParser
 from pathlib import Path
 from subprocess import run
-from os import makedirs, stat
+from os import makedirs, stat, chown, chmod
 from shlex import split
 
 def arg_parse():
@@ -36,7 +36,7 @@ makedirs(stat_dir_path, exist_ok=True)
 stat_file_path = str(Path(f'{stat_dir_path}/stats.ini').resolve())
 
 if args.create:
-    makedirs(package_path)
+    makedirs(package_path, exist_ok=True)
     run_in_repo(split('init --bare'))
     run_in_repo(split('config --local status.showUntrackedFiles no'))
 
@@ -64,7 +64,12 @@ if args.save_stat:
     exit(0)
 
 if args.apply_stat:
-    print('apply')
+    stats = ConfigParser(default_section=None)
+    stats.read(stat_file_path)
+    for i in stats:
+        if i:
+            chmod(f'{args.work_tree}/{i}', int(stats[i]['mode']))
+            chown(f'{args.work_tree}/{i}', int(stats[i]['uid']), int(stats[i]['gid']))
     exit(0)
 
 if args.inside:
